@@ -1,16 +1,16 @@
 # Background
 
-This will detail the process of exporting all users for an organization in Meraki using their API, parsing this into a usable XML format, and then importing that into the Palo Alto firewall using their API.  
+This will detail the process of exporting all users from Meraki using their API, parsing this into a usable XML format, and then importing that into a Palo Alto firewall using their API.  
 
 ## Required Understanding
 
-You should have an understanding of the Meraki dashboard, the Palo Alto ui, how APIs work, and at least basic knowledge of python. 
+You should have an understanding of the Meraki dashboard, Palo Alto firewalls, how APIs work, and at least basic knowledge of python. 
 
 ## Why even do this? 
 
 Palo Alto has the ability to map an IP address to a username. You can then apply policies based off of that username.  This also makes it much easier to look at the monitor log and know who is doing what on your network, without needing to take extra steps to figure out who an IP actually is.  
 
-"But doesn't Palo Alto have an agent to do this?"  Yes. In most cases.  They have a wealth of documentation which you can find here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/user-id/user-id-overview  The difficulty is that in my environment, 95% of my users are not authenticating against our Active Directory servers directly.  We have an 802.1x wireless network that our users connect to. "But doesn't Palo Alto have a way to pull that information?"  Again, yes.  In most cases.  In my environment, when a user connects to the network, Microsoft NPS Radius does not log the ip address of the client that is connecting.  Instead the wireless access point is seen as the client.  This does me no good. Meraki on the otherhand does record this information.  So the challenge is to get this info out of Meraki, and into Palo Alto. 
+"But doesn't Palo Alto have an agent to do this?"  Yes. In most cases.  They have a wealth of documentation which you can find here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/user-id/user-id-overview  The difficulty is that in my environment, 95% of my users are not authenticating against our Active Directory servers directly.  We have an 802.1x wireless network that our users connect to. "But doesn't Palo Alto have a way to pull that information?"  Again, yes.  In most cases.  In my environment, when a user connects to the network, Microsoft NPS does not log the ip address of the client that is connecting.  Instead, radius logs the wireless access point as the client.  This does me no good. Meraki on the otherhand does record this information.  So the challenge is to get this info out of Meraki and into Palo Alto. 
 
 ## Step 1.
 
@@ -75,3 +75,11 @@ After running the XML_Builder, it will spit out a nicely formatted XML file that
 Next, you need a Palo Alto API key, and we need to push the XML file to the firewall. You can find info on getting your Palo Alto API key here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/get-your-api-key  Doublecheck your API key lifetime. https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/firewall-administration/manage-firewall-administrators/configure-administrative-accounts-and-authentication/configure-api-key-lifetime  I do not recommend an infinite lifetime, but you can set it to whatever you want. 
 
 API key in hand, we can plug this into another Python script to do the actual push.  pa-post-api.py in this repo. If you've done everything correct, you can hop over to the Monitor tab on your firewall and check the user-id mappings. You can filter this with `( datasourcename eq XMLAPI )` to show just the user-ids that came from the API (in case you have other sources as well). 
+
+## Step 4
+
+Automate.  I created batch files to call each of these scripts, and scheduled them in Windows Task Scheduler to run 3 times a day.  This is sufficient for my needs.  I have them staggered about 10 minutes apart.  If you need to run more often, or your scripts take longer to run, modify as needed. There are plenty of resources online detailing how to schedule a python script as a batch file, so I won't go into detail on this.  
+
+# Final
+
+Using the above, I am able to get ~2200 users out of my Meraki dashboard, parse them into a useable XML, and then import them into my Palo Alto.  There are probably better ways to achieve this, there are probably cleaner scripts, but I couldn't find a single page detailing this process from start to finish.  If you have suggestions on how to improve this, please do let me know.  I'm always willing how to do something better/faster from someone that knows more than me. 
