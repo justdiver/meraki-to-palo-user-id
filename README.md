@@ -28,7 +28,8 @@ clientIpv4Address,user
 ## Step 2.
 
 Next we need to parse this file into something that the Palo Alto API will accept.  Based on their documentation found here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/apply-user-id-mapping-and-populate-dynamic-address-groups-api We can see that we need our XML file to be formatted as such:
-```<uid-message> 
+```
+<uid-message> 
      <version>1.0</version> 
      <type>update</type> 
      <payload> 
