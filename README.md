@@ -82,4 +82,4 @@ Automate.  I created batch files to call each of these scripts, and scheduled th
 
 # Final
 
-Using the above, I am able to get ~2200 users out of my Meraki dashboard, parse them into a useable XML, and then import them into my Palo Alto.  There are probably better ways to achieve this, there are probably cleaner scripts, but I couldn't find a single page detailing this process from start to finish.  If you have suggestions on how to improve this, please do let me know.  I'm always willing how to do something better/faster from someone that knows more than me. 
+Using the above, I am able to get ~2200 users out of my Meraki dashboard, parse them into a useable XML, and then import them into my Palo Alto.  There are probably better ways to achieve this, there are probably cleaner scripts, but I couldn't find a single page detailing this process from start to finish.  If you have suggestions on how to improve this, please do let me know.  I'm always willing to learn how to do something better/faster from someone that knows more than me. 
