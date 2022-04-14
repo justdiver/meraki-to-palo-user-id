@@ -4,7 +4,7 @@ This will detail the process of exporting all users from Meraki using their API,
 
 ## Required Understanding
 
-You should have an understanding of the Meraki dashboard, Palo Alto firewalls, how APIs work, and at least basic knowledge of python. 
+You should have a working understanding of the Meraki dashboard, Palo Alto firewalls, how APIs work, and at least basic knowledge of python. 
 
 ## Why even do this? 
 
