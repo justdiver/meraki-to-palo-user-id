@@ -66,7 +66,7 @@ I'm not doing any group modification, so we can trim this down to:
      </payload> 
 </uid-message>
 ```
-Take note of the self closing tag and the timeout which I have set to 300.  To get our CSV from Meraki into this XML format, we can run a python script. Credit to Tyler Covault for writing this for me.  I tried my hand at the python, but I am woefully inexperienced at it. It's included in this repo as XML_Builder.py
+Take note of the self closing tag and the timeout which I have set to 300.  To get our CSV from Meraki into this XML format, we can run a python script. Credit to [Tyler Covault](https://github.com/Tyco2194) for writing this for me.  I tried my hand at the python, but I am woefully inexperienced at it. It's included in this repo as XML_Builder.py
 
 After running the XML_Builder, it will spit out a nicely formatted XML file that contains a single line for each user.  *A couple notes on this: 1). Users can show up twice. As they should. But if you have shared users, an account for iPads to connect with for example, than you may want to exclude that user from the output. 2). We ended up excluding APIPA addresses as a couple of those somehow ended up in the export from Meraki. 3). We have this script removing the CSV after it runs, to prevent file collisions.*
 
