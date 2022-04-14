@@ -10,13 +10,13 @@ You should have a working understanding of the Meraki dashboard, Palo Alto firew
 
 Palo Alto has the ability to map an IP address to a username. You can then apply policies based off of that username, as well as other cool opperations in the Palo Alto.  This also makes it much easier to look at the monitor log and know who is doing what on your network, without needing to take extra steps to figure out who an IP actually is.  
 
-"But doesn't Palo Alto have an agent to do this?"  Yes. In most cases.  They have a wealth of documentation which you can find here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/user-id/user-id-overview  The difficulty is that in my environment, 95% of my users are not authenticating against our Active Directory servers directly.  We have an 802.1x wireless network that our users connect to. "But doesn't Palo Alto have a way to pull that information?"  Again, yes.  In most cases.  In my environment, the radius logs on the NPS server don't give us what we need. When a user connects to the network, Microsoft NPS does not log the ip address of the client that is connecting.  Instead, radius logs the wireless access point as the client.  This does me no good. Meraki on the otherhand does record this information in their event logs.  So the challenge is to get this info out of Meraki and into Palo Alto. 
+"But doesn't Palo Alto have an agent to do this?"  Yes. In most cases.  They have a wealth of documentation which you can find [here](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/user-id/user-id-overview).  The difficulty is that in my environment, 95% of my users are not authenticating against our Active Directory servers directly.  We have an 802.1x wireless network that our users connect to. "But doesn't Palo Alto have a way to pull that information?"  Again, yes.  In most cases.  In my environment, the radius logs on the NPS server don't give us what we need. When a user connects to the network, Microsoft NPS does not log the ip address of the client that is connecting.  Instead, radius logs the wireless access point as the client.  This does me no good. Meraki on the otherhand does record this information in their event logs.  So the challenge is to get this info out of Meraki and into Palo Alto. 
 
 ## Step 1.
 
-First thing to do is get your Meraki API key. Information on this process can be found here: https://documentation.meraki.com/General_Administration/Other_Topics/Cisco_Meraki_Dashboard_API
+First thing to do is get your Meraki API key. Information on this process can be found [here](https://documentation.meraki.com/General_Administration/Other_Topics/Cisco_Meraki_Dashboard_API).
 
-After you have your API key, next head over to the Meraki automation github page: https://github.com/meraki/automation-scripts You're going to want to grab the orgclientscsv.py script.  For my purpose, I don't need everything that this script pulls.  Under the line `for client in networkClients:` comment out everything except for client ip and client user. And then do the same under `csvHeader = ','.join(\[` This will limit how much information we actually have to parse through.  Next find the line that says `for net in networks:` and on the next line, add the following to the query: `'perPage':250,'timespan':86400`.  This will limit the time we're searching to 24 hours and return 250 clients per page.  This makes the script run MUCH faster.  You can modify these to suit your needs, but this was fine for me. 
+After you have your API key, next head over to the Meraki automation github [page](https://github.com/meraki/automation-scripts) You're going to want to grab the orgclientscsv.py script.  For my purpose, I don't need everything that this script pulls.  Under the line `for client in networkClients:` comment out everything except for client ip and client user. And then do the same under `csvHeader = ','.join(\[` This will limit how much information we actually have to parse through.  Next find the line that says `for net in networks:` and on the next line, add the following to the query: `'perPage':250,'timespan':86400`.  This will limit the time we're searching to 24 hours and return 250 clients per page.  This makes the script run MUCH faster.  You can modify these to suit your needs, but this was fine for me. 
 
 Once you run this script, you'll have a file that contains all of the users on your meraki dashboard and the last IP address that they used (in the last 24 hours obviously).  The file should contain something like this: 
 ```
@@ -27,7 +27,7 @@ clientIpv4Address,user
 
 ## Step 2.
 
-Next we need to parse this file and output into something that the Palo Alto API will accept.  Based on their documentation found here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/apply-user-id-mapping-and-populate-dynamic-address-groups-api We can see that we need our XML file to be formatted as such:
+Next we need to parse this file and output into something that the Palo Alto API will accept.  Based on their documentation found [here](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/apply-user-id-mapping-and-populate-dynamic-address-groups-api). We can see that we need our XML file to be formatted as such:
 
 ```
 <uid-message> 
@@ -73,11 +73,11 @@ After running the XML_Builder, it will spit out a nicely formatted XML file that
 
 ## Step 3
 
-Next, you need a Palo Alto API key, and we need to push the XML file to the firewall. You can find info on getting your Palo Alto API key here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/get-your-api-key  Doublecheck your API key lifetime. https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/firewall-administration/manage-firewall-administrators/configure-administrative-accounts-and-authentication/configure-api-key-lifetime  I do not recommend an infinite lifetime, but you can set it to whatever you want. 
+Next, you need a Palo Alto API key, and we need to push the XML file to the firewall. You can find info on getting your Palo Alto API key [here](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/get-your-api-key).  Doublecheck your API key [lifetime](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/firewall-administration/manage-firewall-administrators/configure-administrative-accounts-and-authentication/configure-api-key-lifetime).  I do not recommend an infinite lifetime, but you can set it to whatever you want. 
 
 API key in hand, we can plug this into another Python script to do the actual push.  pa-post-api.py in this repo. If you've done everything correct, you can hop over to the Monitor tab on your firewall and check the user-id mappings. You can filter this with `( datasourcename eq XMLAPI )` to show just the user-ids that came from the API (in case you have other sources as well). 
 
-One last note on the Palo import... You have to declare what subnets you will include and exclude or the script will fail.  More info here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-web-interface-help/user-identification/device-user-identification-user-mapping/include-or-exclude-subnetworks-for-user-mapping
+One last note on the Palo import... You have to declare what subnets you will include and exclude or the script will fail.  More info [here](https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-web-interface-help/user-identification/device-user-identification-user-mapping/include-or-exclude-subnetworks-for-user-mapping).
 
 ## Step 4
 
