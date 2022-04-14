@@ -16,7 +16,7 @@ Palo Alto has the ability to map an IP address to a username. You can then apply
 
 First thing to do is get your Meraki API key. Information on this process can be found here: https://documentation.meraki.com/General_Administration/Other_Topics/Cisco_Meraki_Dashboard_API
 
-After you have your API key, next head over to the Meraki automation github page: https://github.com/meraki/automation-scripts You're going to want to grab the orgclientscsv.py script.  For my purpose, I don't need everything that this script pulls.  Under the line "for client in networkClients:" comment out everything except for client ip and client user. And then do the same under "csvHeader = ','.join(\[" This will limit how much information we actually have to parse through.  Next find the line that say "for net in networks:" and on the next line, add the following to the query: 'perPage':250,'timespan':86400.  This will limit the time we're searching to 24 hours and return 250 clients per page.  This makes the script run MUCH faster.  You can modify these to suit your needs, but this was fine for me. 
+After you have your API key, next head over to the Meraki automation github page: https://github.com/meraki/automation-scripts You're going to want to grab the orgclientscsv.py script.  For my purpose, I don't need everything that this script pulls.  Under the line `for client in networkClients:` comment out everything except for client ip and client user. And then do the same under `csvHeader = ','.join(\[` This will limit how much information we actually have to parse through.  Next find the line that says `for net in networks:` and on the next line, add the following to the query: `'perPage':250,'timespan':86400`.  This will limit the time we're searching to 24 hours and return 250 clients per page.  This makes the script run MUCH faster.  You can modify these to suit your needs, but this was fine for me. 
 
 Once you run this script, you'll have a file that contains all of the users on your meraki dashboard and the last IP address that they used (in the last 24 hours obviously).  The file should contain something like this: 
 ```
@@ -27,7 +27,8 @@ clientIpv4Address,user
 
 ## Step 2.
 
-Next we need to parse this file into something that the Palo Alto API will accept.  Based on their documentation found here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/apply-user-id-mapping-and-populate-dynamic-address-groups-api We can see that we need our XML file to be formatted as such:
+Next we need to parse this file and output into something that the Palo Alto API will accept.  Based on their documentation found here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/pan-os-xml-api-request-types/apply-user-id-mapping-and-populate-dynamic-address-groups-api We can see that we need our XML file to be formatted as such:
+
 ```
 <uid-message> 
      <version>1.0</version> 
@@ -68,13 +69,15 @@ I'm not doing any group modification, so we can trim this down to:
 ```
 Take note of the self closing tag and the timeout which I have set to 300.  To get our CSV from Meraki into this XML format, we can run a python script. Credit to [Tyler Covault](https://github.com/Tyco2194) for writing this for me.  I tried my hand at the python, but I am woefully inexperienced at it. It's included in this repo as XML_Builder.py
 
-After running the XML_Builder, it will spit out a nicely formatted XML file that contains a single line for each user.  *A couple notes on this: 1). Users can show up twice. As they should. But if you have shared users, an account for iPads to connect with for example, than you may want to exclude that user from the output. 2). We ended up excluding APIPA addresses as a couple of those somehow ended up in the export from Meraki. 3). We have this script removing the CSV after it runs, to prevent file collisions.*
+After running the XML_Builder, it will spit out a nicely formatted XML file that contains a single line for each user.  *A couple notes on this: 1). Users can show up twice. As they should. 2). You can exclude users from this list, should you need/want to. 3). We ended up excluding APIPA addresses as a couple of those somehow ended up in the export from Meraki. 4). We have this script removing the CSV after it runs, to prevent file collisions.*
 
 ## Step 3
 
 Next, you need a Palo Alto API key, and we need to push the XML file to the firewall. You can find info on getting your Palo Alto API key here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/get-your-api-key  Doublecheck your API key lifetime. https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/firewall-administration/manage-firewall-administrators/configure-administrative-accounts-and-authentication/configure-api-key-lifetime  I do not recommend an infinite lifetime, but you can set it to whatever you want. 
 
 API key in hand, we can plug this into another Python script to do the actual push.  pa-post-api.py in this repo. If you've done everything correct, you can hop over to the Monitor tab on your firewall and check the user-id mappings. You can filter this with `( datasourcename eq XMLAPI )` to show just the user-ids that came from the API (in case you have other sources as well). 
+
+One last note on the Palo import... You have to declare what subnets you will include and exclude or the script will fail.  More info here: https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-web-interface-help/user-identification/device-user-identification-user-mapping/include-or-exclude-subnetworks-for-user-mapping
 
 ## Step 4
 
